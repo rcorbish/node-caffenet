@@ -1,0 +1,39 @@
+{
+  "name": "caffenet",
+  "description": "Interface to BVLC caffe",
+  "version": "0.0.1",
+  "main": "index.js",
+  "keywords": [
+    "caffe",
+    "experimental"
+  ],
+  "author": "Richard Corbishley <rcorbish@hotmail.com> (rcorbish.ydns.eu)",
+  "contributors": [ ],
+  "dependencies": {
+  },
+  "devDependencies": {
+  },
+  "optionalDependencies": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rcorbish/node-caffenet.git"
+  },
+  "engines": {
+    "node": ">= 6.5.0"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "bugs": {
+    "url": "https://github.com/rcorbish/node-caffenet/issues"
+  },
+  "homepage": "https://github.com/rcorbish/node-caffenet#readme",
+  "directories": {
+    "test": "test",
+    "data": "data",
+    "lib": "lib"
+  },
+  "license": "Unlicense"
+}
+
