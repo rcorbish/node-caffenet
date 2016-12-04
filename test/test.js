@@ -2,6 +2,7 @@
 var c=require( 'caffenet' ) ;
 var fs = require( 'fs' ) ;
 
+c.Caffe
 var N = new c.Caffe( "/home/richard/caffe/models/bvlc_reference_caffenet/deploy.prototxt" ) ;
 N.mode = 'GPU' ;
 N.setTrainedFile( "/home/richard/caffe/models/bvlc_reference_caffenet/bvlc_reference_caffenet.caffemodel" ) ;

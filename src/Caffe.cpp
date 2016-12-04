@@ -26,6 +26,7 @@ class WrappedCaffe : public node::ObjectWrap
        ALl the methods and attributes are defined here.
     */
     static void Init(v8::Local<v8::Object> exports, Local<Object> module) {
+
       Isolate* isolate = exports->GetIsolate();
 
       // Prepare constructor template and name of the class
@@ -41,7 +42,7 @@ class WrappedCaffe : public node::ObjectWrap
       NODE_SET_PROTOTYPE_METHOD(tpl, "setLabelFile", SetLabelFile ) ;
       NODE_SET_PROTOTYPE_METHOD(tpl, "processImageFile", ProcessImageFile ) ;
 
-      NODE_SET_METHOD(exports, "net", Net);
+      //NODE_SET_METHOD(exports, "net", Net);
 
       // define how we access the attributes
       tpl->InstanceTemplate()->SetAccessor(String::NewFromUtf8(isolate, "name"), GetCoeff, SetCoeff);
@@ -50,17 +51,12 @@ class WrappedCaffe : public node::ObjectWrap
       constructor.Reset(isolate, tpl->GetFunction());
       exports->Set(String::NewFromUtf8(isolate, "Caffe"), tpl->GetFunction());
     }
-    /*
-	The nodejs constructor. 
-	@see New
-    */
-    static Local<Object> NewInstance(const FunctionCallbackInfo<Value>& args);
 
   private:
    /*
 	The C++ constructor.
    */
-    explicit WrappedCaffe( const char *protofile ) {
+    explicit WrappedCaffe( const char *protofile=NULL) {
       name_ = NULL ;
       net_ = caffenet::create( protofile ) ;
     }
@@ -73,11 +69,11 @@ class WrappedCaffe : public node::ObjectWrap
     }
 
     /*
-	The javascript constructor.
+	The javascript constructor. N = new c.Caffe( .... ) 
     */
     static void New(const v8::FunctionCallbackInfo<v8::Value>& args) {
       if (args.IsConstructCall()) {
-        if( !args[0]->IsUndefined() ) {
+        if( args.Length()>0 && !args[0]->IsUndefined() ) {
           Isolate* isolate = args.GetIsolate();
           Local<Context> context = isolate->GetCurrentContext() ;
           Local<String> string = args[0]->ToString(context).ToLocalChecked() ;
@@ -86,7 +82,10 @@ class WrappedCaffe : public node::ObjectWrap
           WrappedCaffe* self = new WrappedCaffe( c ) ;
           self->Wrap( args.This() ) ;
 	  delete c ;
-        }
+        } else {
+          WrappedCaffe* self = new WrappedCaffe() ;
+          self->Wrap( args.This() ) ;
+	}
         args.GetReturnValue().Set( args.This() ) ;
       }
     }
@@ -104,7 +103,6 @@ class WrappedCaffe : public node::ObjectWrap
 
     static void ToString(const FunctionCallbackInfo<Value>& args);
     static void Inspect(const FunctionCallbackInfo<Value>& args);
-    static void Net(const FunctionCallbackInfo<Value>& args );
     static void SetMeanFile(const FunctionCallbackInfo<Value>& args );
     static void SetTrainedFile( const FunctionCallbackInfo<v8::Value>& args ) ;
     static void SetLabelFile( const FunctionCallbackInfo<v8::Value>& args ) ;
@@ -119,22 +117,6 @@ Persistent<Function> WrappedCaffe::constructor;
 
 
 
-Local<Object> WrappedCaffe::NewInstance(const FunctionCallbackInfo<Value>& args)
-{
-printf( "In NewInstance\n" ) ;
-
-  Isolate* isolate = args.GetIsolate();
-  Local<Context> context = isolate->GetCurrentContext() ;
-  EscapableHandleScope scope(isolate) ; ;
-
-  const unsigned argc = 2;
-  Local<Value> argv[argc] = { args[0], args[1] };
-  Local<Function> cons = Local<Function>::New(isolate, constructor);
-  MaybeLocal<Object> instance = cons->NewInstance(context, argc, argv);
-
-  return scope.Escape(instance.ToLocalChecked() );
-}
-
 /** 
 	returns a string representation of the target 
 */
@@ -148,7 +130,7 @@ void WrappedCaffe::ToString( const v8::FunctionCallbackInfo<v8::Value>& args )
   if( self->name_ != NULL ) {
   	sprintf( rc, "[ %s ] ", self->name_ ) ;
   } else if( self->net_ != NULL ) {
-	sprintf( rc, self->net_->getName() ) ;
+	sprintf( rc, "* %s *", self->net_->getName() ) ;
   } else {
 	sprintf( rc, "?? UNNAMED ??" ) ;
   }
@@ -164,44 +146,12 @@ void WrappedCaffe::Inspect( const v8::FunctionCallbackInfo<v8::Value>& args )
 
 
 
-void WrappedCaffe::Net( const FunctionCallbackInfo<v8::Value>& args )
-{
-  Isolate* isolate = args.GetIsolate();
-  Local<Context> context = isolate->GetCurrentContext() ;
-  EscapableHandleScope scope(isolate) ; ;
-
-
-printf( "In Net( %d)\n", args[0]->IsUndefined()  ) ;
-        if( !args[0]->IsUndefined() ) {
-          Isolate* isolate = args.GetIsolate();
-          Local<Context> context = isolate->GetCurrentContext() ;
-          Local<String> string = args[0]->ToString(context).ToLocalChecked() ;
-  	  char *c = new char[ string->Utf8Length() + 16 ] ;
-	  string->WriteUtf8( c ) ;
-          WrappedCaffe* self = new WrappedCaffe( c ) ;
-          self->Wrap( args.This() ) ;
-          args.GetReturnValue().Set( args.This() ) ;
-	  delete c ;
-        }
-
-  const unsigned argc = 0;
-  Local<Value> argv[argc] = {};
-  Local<Function> cons = Local<Function>::New(isolate, constructor);
-  Local<Object> instance = cons->NewInstance(context, argc, argv).ToLocalChecked() ;
-
-  scope.Escape(instance);
-
-  WrappedCaffe* self = node::ObjectWrap::Unwrap<WrappedCaffe>( instance ) ;
-
-  args.GetReturnValue().Set( instance );
-}
-
 
 
 void WrappedCaffe::SetMeanFile( const FunctionCallbackInfo<v8::Value>& args )
 {
   Isolate* isolate = args.GetIsolate();
-  Local<Context> context = isolate->GetCurrentContext() ;
+  //Local<Context> context = isolate->GetCurrentContext() ;
   EscapableHandleScope scope(isolate) ; ;
 
   WrappedCaffe* self = node::ObjectWrap::Unwrap<WrappedCaffe>( args.Holder() ) ;
@@ -223,7 +173,7 @@ void WrappedCaffe::SetMeanFile( const FunctionCallbackInfo<v8::Value>& args )
 void WrappedCaffe::ProcessImageFile( const FunctionCallbackInfo<v8::Value>& args )
 {
   Isolate* isolate = args.GetIsolate();
-  Local<Context> context = isolate->GetCurrentContext() ;
+  //Local<Context> context = isolate->GetCurrentContext() ;
   EscapableHandleScope scope(isolate) ; ;
 
   WrappedCaffe* self = node::ObjectWrap::Unwrap<WrappedCaffe>( args.Holder() ) ;
@@ -251,7 +201,7 @@ void WrappedCaffe::ProcessImageFile( const FunctionCallbackInfo<v8::Value>& args
 void WrappedCaffe::SetTrainedFile( const FunctionCallbackInfo<v8::Value>& args )
 {
   Isolate* isolate = args.GetIsolate();
-  Local<Context> context = isolate->GetCurrentContext() ;
+  //Local<Context> context = isolate->GetCurrentContext() ;
   EscapableHandleScope scope(isolate) ; ;
 
   WrappedCaffe* self = node::ObjectWrap::Unwrap<WrappedCaffe>( args.Holder() ) ;
@@ -273,7 +223,7 @@ void WrappedCaffe::SetTrainedFile( const FunctionCallbackInfo<v8::Value>& args )
 void WrappedCaffe::SetLabelFile( const FunctionCallbackInfo<v8::Value>& args )
 {
   Isolate* isolate = args.GetIsolate();
-  Local<Context> context = isolate->GetCurrentContext() ;
+  //Local<Context> context = isolate->GetCurrentContext() ;
   EscapableHandleScope scope(isolate) ; ;
 
   WrappedCaffe* self = node::ObjectWrap::Unwrap<WrappedCaffe>( args.Holder() ) ;
@@ -347,8 +297,8 @@ void WrappedCaffe::SetCoeff(Local<String> property, Local<Value> value, const Pr
 /*
 	The module init script - called by nodejs at load time
 */
-void InitCaffe(Local<Object> exports, Local<Object> module)
-{
+void InitCaffe(Local<Object> exports, Local<Object> module) {
+  caffenet::Init() ;
   WrappedCaffe::Init(exports, module);
 }
 

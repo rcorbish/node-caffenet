@@ -13,5 +13,6 @@ namespace caffenet {
 			virtual ~CaffeNet() {} ;
 	} ;
 
-	extern CaffeNet *create( const char *protofile ) ;
+	extern CaffeNet *create( const char *protofile=NULL ) ;
+	extern void Init() ;
 }

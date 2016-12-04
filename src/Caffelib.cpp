@@ -8,8 +8,11 @@
 
 using namespace std;
 
-namespace caffenet
-{
+namespace caffenet {
+
+  void Init() {
+    ::google::InitGoogleLogging("CaffeNet") ;
+  } 
 
   typedef std::pair<string, float> Prediction;
   bool PairCompare(const std::pair<float, int>& lhs,
@@ -20,14 +23,22 @@ namespace caffenet
   class CaffeNetImpl : public CaffeNet {
 
     public:
-      CaffeNetImpl( const char *modelfile="" ) {
-        const std::string str(modelfile);
+      CaffeNetImpl( const char *modelfile=NULL ) {
+        net_ = NULL ;
+        if( modelfile != NULL ) {
+          const std::string str(modelfile);
+          net_ = new caffe::Net<float>(str, caffe::TEST) ;
+          caffe::Blob<float>* input_layer = net_->input_blobs()[0];
+          numChannels_ = input_layer->channels();
+          inputGeometry_ = cv::Size(input_layer->width(), input_layer->height());
+          
+        input_layer->Reshape(1, numChannels_, inputGeometry_.height, inputGeometry_.width);
+        /* Forward dimension change to all layers. */
+        net_->Reshape();
+
+        } 
         isGpuMode_ = false ;
         caffe::Caffe::set_mode(caffe::Caffe::CPU);
-        net_ = new caffe::Net<float>(str, caffe::TEST) ;
-        caffe::Blob<float>* input_layer = net_->input_blobs()[0];
-        numChannels_ = input_layer->channels();
-        inputGeometry_ = cv::Size(input_layer->width(), input_layer->height());
       }
       ~CaffeNetImpl() {
         delete net_ ;
@@ -47,13 +58,18 @@ namespace caffenet
         }
       }
 
-      const char *getName() { return "Boo Ya" ; }
+      const char *getName() { return net_==NULL ? "Uninitialized Network" :"Initialized Network" ; }
 
       void setTrainedFile( const char *trainedfile ) {
         net_->CopyTrainedLayersFrom(trainedfile) ;
 //        printf( "Trained data Set %s\n", trainedfile ) ;
       }
 
+
+ 	void train( const char *dataFile ) {
+ 		
+ 	}
+ 	
       void setLabelFile( const char *labelfile ) {
         std::ifstream labels(labelfile);
         //  CHECK(labels) << "Unable to open labels file " << label_file;
@@ -95,13 +111,15 @@ namespace caffenet
 //        printf( "Mean set %s\n", meanfile ) ;
       }
 
-      char **processImageFile( const char *labelfile, int N ) {
-        cv::Mat img = cv::imread(labelfile, -1);
+      char **processImageFile( const char *imageFile, int N ) {
+      // Read the image into a matrix
+        cv::Mat img = cv::imread(imageFile, -1);
 
+	  // 
         caffe::Blob<float>* input_layer = net_->input_blobs()[0];
-        input_layer->Reshape(1, numChannels_, inputGeometry_.height, inputGeometry_.width);
+        //input_layer->Reshape(1, numChannels_, inputGeometry_.height, inputGeometry_.width);
         /* Forward dimension change to all layers. */
-        net_->Reshape();
+        //net_->Reshape();
 
         std::vector<cv::Mat> input_channels;
         //          caffe::Blob<float>* input_layer = net_->input_blobs()[0];
@@ -188,7 +206,6 @@ namespace caffenet
   } ;
 
   CaffeNet *create( const char *protofile ) {
-    ::google::InitGoogleLogging("CaffeNet");
     return new CaffeNetImpl( protofile ) ;
   }
 
