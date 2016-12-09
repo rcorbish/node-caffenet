@@ -2,3 +2,9 @@ build
 lib
 node_modules
 .project
+/cifar10_test_lmdb/
+/cifar10_train_lmdb/
+/snapshot_iter_*.h5
+create_cifar10.sh
+deploy.prototxt
+mean.binaryproto
