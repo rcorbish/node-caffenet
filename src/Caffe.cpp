@@ -41,6 +41,8 @@ class WrappedCaffe : public node::ObjectWrap
       NODE_SET_PROTOTYPE_METHOD(tpl, "setTrainedFile", SetTrainedFile ) ;
       NODE_SET_PROTOTYPE_METHOD(tpl, "setLabelFile", SetLabelFile ) ;
       NODE_SET_PROTOTYPE_METHOD(tpl, "processImageFile", ProcessImageFile ) ;
+      NODE_SET_PROTOTYPE_METHOD(tpl, "train", Train ) ;
+      NODE_SET_PROTOTYPE_METHOD(tpl, "load", Load ) ;
 
       //NODE_SET_METHOD(exports, "net", Net);
 
@@ -107,6 +109,8 @@ class WrappedCaffe : public node::ObjectWrap
     static void SetTrainedFile( const FunctionCallbackInfo<v8::Value>& args ) ;
     static void SetLabelFile( const FunctionCallbackInfo<v8::Value>& args ) ;
     static void ProcessImageFile( const FunctionCallbackInfo<v8::Value>& args ) ;
+    static void Train( const FunctionCallbackInfo<v8::Value>& args ) ;
+    static void Load( const FunctionCallbackInfo<v8::Value>& args ) ;
 
     static void GetCoeff(Local<String> property, const PropertyCallbackInfo<Value>& info);
     static void SetCoeff(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info);
@@ -146,6 +150,59 @@ void WrappedCaffe::Inspect( const v8::FunctionCallbackInfo<v8::Value>& args )
 
 
 
+void WrappedCaffe::Train( const FunctionCallbackInfo<v8::Value>& args )
+{
+  Isolate* isolate = args.GetIsolate();
+  //Local<Context> context = isolate->GetCurrentContext() ;
+  EscapableHandleScope scope(isolate) ; ;
+
+  WrappedCaffe* self = node::ObjectWrap::Unwrap<WrappedCaffe>( args.Holder() ) ;
+
+  if( !args[0]->IsUndefined() ) {
+    Isolate* isolate = args.GetIsolate();
+    Local<Context> context = isolate->GetCurrentContext() ;
+    Local<String> string = args[0]->ToString(context).ToLocalChecked() ;
+    char *c = new char[ string->Utf8Length() + 16 ] ;
+    string->WriteUtf8( c ) ;
+    self->net_->train( c ) ;
+    args.GetReturnValue().Set( args.Holder() ) ;
+    delete c ;
+  }
+}
+
+
+
+void WrappedCaffe::Load( const FunctionCallbackInfo<v8::Value>& args )
+{
+  Isolate* isolate = args.GetIsolate();
+  //Local<Context> context = isolate->GetCurrentContext() ;
+  EscapableHandleScope scope(isolate) ; ;
+
+  WrappedCaffe* self = node::ObjectWrap::Unwrap<WrappedCaffe>( args.Holder() ) ;
+
+  if( !args[0]->IsUndefined() ) {
+    Isolate* isolate = args.GetIsolate();
+    Local<Context> context = isolate->GetCurrentContext() ;
+    Local<String> string1 = args[0]->ToString(context).ToLocalChecked() ;
+    char *c1 = new char[ string1->Utf8Length() + 16 ] ;
+    string1->WriteUtf8( c1 ) ;
+    
+    char *c2 = NULL ;
+    if( !args[1]->IsUndefined() ) {
+      Local<String> string2 = args[1]->ToString(context).ToLocalChecked() ;
+      c2 = new char[ string2->Utf8Length() + 16 ] ;
+      string2->WriteUtf8( c2 ) ;
+    }
+    
+    self->net_->load( c1, c2 ) ;
+    args.GetReturnValue().Set( args.Holder() ) ;
+    delete c2 ;
+    delete c1 ;
+  }
+}
+
+
+
 
 
 void WrappedCaffe::SetMeanFile( const FunctionCallbackInfo<v8::Value>& args )
@@ -169,6 +226,8 @@ void WrappedCaffe::SetMeanFile( const FunctionCallbackInfo<v8::Value>& args )
 }
 
 
+const char *Labels[] = { "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck" } ;
+
 
 void WrappedCaffe::ProcessImageFile( const FunctionCallbackInfo<v8::Value>& args )
 {
@@ -182,16 +241,13 @@ void WrappedCaffe::ProcessImageFile( const FunctionCallbackInfo<v8::Value>& args
     Isolate* isolate = args.GetIsolate();
     Local<Context> context = isolate->GetCurrentContext() ;
     Local<String> string = args[0]->ToString(context).ToLocalChecked() ;
+    
     char *c = new char[ string->Utf8Length() + 16 ] ;
     string->WriteUtf8( c ) ;
-    Local<Array> arr = Array::New( isolate, 5 ) ;
-    char **rc = self->net_->processImageFile( c, 5 ) ;
-    for( int i=0 ; i<5 ; i++ ) {
-	arr->Set( context, i, String::NewFromUtf8(isolate, rc[i] ) ) ;
-	delete rc[i] ;
-    }
-    delete rc ;
-    args.GetReturnValue().Set( arr ) ;
+    
+    int rc = self->net_->processImageFile( c, 5 ) ;
+    args.GetReturnValue().Set( String::NewFromUtf8( isolate, Labels[rc]) ) ;
+    
     delete c ;
   }
 }
